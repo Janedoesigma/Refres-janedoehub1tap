@@ -2,7 +2,7 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 
 local Window = WindUI:CreateWindow({
     Title = "JANE DOE HUB",
-    Icon = "shield", 
+    Icon = "axe", 
     Author = "FORSAKEN [NOS]/ version: 0.1",
     Folder = "JaneDoeHub",
     
@@ -17,7 +17,7 @@ local Window = WindUI:CreateWindow({
     HideSearchBar = true,
     ScrollBarEnabled = false,
     
-    Background = "rbxassetid://95666152750961", 
+    Background = "rbxassetid://134475959107264", 
     
     User = {
         Enabled = true,
