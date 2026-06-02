@@ -2,8 +2,8 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 
 local Window = WindUI:CreateWindow({
     Title = "JANE DOE HUB",
-    Icon = "axe", 
-    Author = "FORSAKEN [NOS]/ version: 0.1.5",
+    Icon = "shield", 
+    Author = "FORSAKEN [NOS]/ version: 0.1",
     Folder = "JaneDoeHub",
     
     Size = UDim2.fromOffset(580, 460),
@@ -17,7 +17,7 @@ local Window = WindUI:CreateWindow({
     HideSearchBar = true,
     ScrollBarEnabled = false,
     
-    Background = "rbxassetid://98866268394739", 
+    Background = "rbxassetid://95666152750961", 
     
     User = {
         Enabled = true,
@@ -44,7 +44,9 @@ local NetworkRemote = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Ne
 getgenv().emergency_stop = false
 getgenv().ESP_Killers = false
 getgenv().ESP_Survivors = false
-getgenv().ESP_Generators = false
+getgenv().ESP_Items = false
+getgenv().ESP_Generators_V2 = false
+getgenv().ESP_Documents = false
 
 -- Aim Bot Configs
 local aimBotActive = false
@@ -84,7 +86,6 @@ local function isTargetVisible(targetPart)
     
     local raycastResult = Workspace:Raycast(origin, direction, raycastParams)
     
-    -- If nothing solid blocks the path, return true (target is clear/visible)
     if not raycastResult then
         return true
     end
@@ -98,7 +99,6 @@ local function getClosestTarget(maxDistance)
     local playersFolder = Workspace:FindFirstChild("Players")
     if playersFolder then
         for _, group in pairs(playersFolder:GetChildren()) do
-            -- Target identification matching Killer patterns
             if string.find(group.Name, "Killer") or string.find(group.Name, "Ki") or group.Name == "Killers" then
                 for _, target in pairs(group:GetChildren()) do
                     if target:IsA("Model") and target:FindFirstChild("HumanoidRootPart") and target ~= LocalPlayer.Character then
@@ -106,7 +106,6 @@ local function getClosestTarget(maxDistance)
                         local distance = (LocalPlayer.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
                         
                         if distance < shortestDistance then
-                            -- Apply Anti-Bait visibility wall obstruction check filter
                             if antiBaitActive then
                                 if isTargetVisible(hrp) then
                                     shortestDistance = distance
@@ -138,21 +137,18 @@ task.spawn(function()
                 local myHrp = LocalPlayer.Character.HumanoidRootPart
                 local targetHrp = target.HumanoidRootPart
                 
-                -- Dynamic Tracking Alignments
                 local targetLookPos = Vector3.new(targetHrp.Position.X, myHrp.Position.Y, targetHrp.Position.Z)
                 myHrp.CFrame = myHrp.CFrame:Lerp(CFrame.new(myHrp.Position, targetLookPos), aimBotSmoothness)
                 
                 local camera = Workspace.CurrentCamera
                 camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, targetHrp.Position), aimBotSmoothness)
                 
-                -- Attack triggers execution parameters
                 local exactDistance = (myHrp.Position - targetHrp.Position).Magnitude
                 if exactDistance <= 8 and (tick() - lastAttack) >= 1.5 then
                     lastAttack = tick()
                     
                     task.spawn(function()
                         for i = 1, 6 do
-                            -- Exit instantly if target gets hidden behind wall mid-execution while anti-bait is true
                             if antiBaitActive and not isTargetVisible(targetHrp) then break end
                             
                             local args = {}
@@ -179,7 +175,7 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------------------------------
--- EXPLOIT FUNCTIONS (HITBOX, TRICK VERONICA, ANTI STUN)
+-- EXPLOIT AUTOMATIONS (HITBOX, TRICK VERONICA, ANTI STUN)
 ----------------------------------------------------------------------------------
 local HitboxModule = {}
 local function StudsIntoPower(studs) return (studs * 6) end
@@ -213,7 +209,6 @@ function HitboxModule:Toggle(state)
     end
 end
 
--- Trick Veronica Core Loop
 task.spawn(function()
     while true do
         RunService.Heartbeat:Wait()
@@ -221,7 +216,6 @@ task.spawn(function()
             local hrp = LocalPlayer.Character.HumanoidRootPart
             local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
             
-            -- Checks explicitly if character is active and moving physically
             if humanoid and humanoid.MoveDirection.Magnitude > 0.1 then
                 local raycastParams = RaycastParams.new()
                 raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, Workspace:FindFirstChild("Players")}
@@ -230,7 +224,6 @@ task.spawn(function()
                 local rayDirection = hrp.CFrame.LookVector * studsWallLimit
                 local raycastResult = Workspace:Raycast(hrp.Position, rayDirection, raycastParams)
                 
-                -- Flat wall execution trigger check
                 if raycastResult and math.abs(raycastResult.Normal.Y) < 0.1 then 
                     local sk8Args = { "UseActorAbility", { buffer.fromstring("\003\003\000\000\000Sk8") } }
                     NetworkRemote:FireServer(unpack(sk8Args))
@@ -246,7 +239,6 @@ task.spawn(function()
     end
 end)
 
--- Anti Stun State Loop
 task.spawn(function()
     while true do
         task.wait(0.2)
@@ -263,12 +255,15 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------------------------------
--- VISUALS & PERFORMANCE MANAGER (ESP / GRAPHICS / LIGHTS)
+-- ADVANCED ADVANCED REAL-TIME ESP STREAMING PIPELINE
 ----------------------------------------------------------------------------------
 local function createOutlineESP(model, outlineColor, fillColor)
-    if model:FindFirstChildOfClass("Highlight") then return end
-    local highlight = Instance.new("Highlight")
-    highlight.Parent = model
+    if not model or not model.Parent then return end
+    local highlight = model:FindFirstChildOfClass("Highlight")
+    if not highlight then
+        highlight = Instance.new("Highlight")
+        highlight.Parent = model
+    end
     highlight.Adornee = model
     highlight.FillTransparency = 0.75
     highlight.FillColor = fillColor
@@ -276,67 +271,79 @@ local function createOutlineESP(model, outlineColor, fillColor)
     highlight.OutlineTransparency = 0 
 end
 
-local function clearESPFromModel(model)
+local function removeESP(model)
     if model then
-        for _, highlight in pairs(model:GetChildren()) do
-            if highlight:IsA("Highlight") then highlight:Destroy() end
-        end
+        local highlight = model:FindFirstChildOfClass("Highlight")
+        if highlight then highlight:Destroy() end
     end
 end
 
+-- Universal Dynamic Environment Scanning Loop
 task.spawn(function()
     while true do
+        -- Core Player Filtering Systems (Killers & Survivors)
         local PlayersFolder = Workspace:FindFirstChild("Players")
-        if PlayersFolder and (getgenv().ESP_Killers or getgenv().ESP_Survivors or getgenv().ESP_Generators) then
+        if PlayersFolder then
             local killersGroup = PlayersFolder:FindFirstChild("Killers")
             if killersGroup then
-                if getgenv().ESP_Killers then
-                    for _, obj in pairs(killersGroup:GetChildren()) do
-                        if obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
-                            createOutlineESP(obj, Color3.new(1, 0, 0), Color3.new(1, 0.5, 0.5))
-                        end
+                for _, obj in pairs(killersGroup:GetChildren()) do
+                    if getgenv().ESP_Killers and obj:FindFirstChild("HumanoidRootPart") then
+                        createOutlineESP(obj, Color3.new(1, 0, 0), Color3.new(1, 0.5, 0.5))
+                    else
+                        removeESP(obj)
                     end
-                else
-                    for _, obj in pairs(killersGroup:GetChildren()) do clearESPFromModel(obj) end
                 end
             end
 
             local survivorsGroup = PlayersFolder:FindFirstChild("Survivors")
             if survivorsGroup then
-                if getgenv().ESP_Survivors then
-                    for _, obj in pairs(survivorsGroup:GetChildren()) do
-                        if obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
-                            createOutlineESP(obj, Color3.new(0, 1, 0), Color3.new(0.5, 1, 0.5))
-                        end
-                    end
-                else
-                    for _, obj in pairs(survivorsGroup:GetChildren()) do clearESPFromModel(obj) end
-                end
-            end
-
-            if getgenv().ESP_Generators then
-                local generatorsFolder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Ingame") and workspace.Map.Ingame:FindFirstChild("Map")
-                if generatorsFolder then
-                    for _, obj in pairs(generatorsFolder:GetChildren()) do
-                        if obj:IsA("Model") and obj.Name == "Generator" then
-                            createOutlineESP(obj, Color3.new(1, 1, 0), Color3.new(1, 1, 0.5))
-                        end
-                    end
-                end
-            else
-                local generatorsFolder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Ingame") and workspace.Map.Ingame:FindFirstChild("Map")
-                if generatorsFolder then
-                    for _, obj in pairs(generatorsFolder:GetChildren()) do
-                        if obj.Name == "Generator" then clearESPFromModel(obj) end
+                for _, obj in pairs(survivorsGroup:GetChildren()) do
+                    if getgenv().ESP_Survivors and obj:FindFirstChild("HumanoidRootPart") then
+                        createOutlineESP(obj, Color3.new(0, 1, 0), Color3.new(0.5, 1, 0.5))
+                    else
+                        removeESP(obj)
                     end
                 end
             end
         end
-        task.wait(2)
+
+        -- Object Mapping Matrix for Interactive Environment Targets
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("Model") or obj:IsA("BasePart") then
+                local loweredName = string.lower(obj.Name)
+                
+                -- 1. ESP Items (BloxyCola, Medkit) -> Light Blue
+                if getgenv().ESP_Items and (string.find(loweredName, "bloxycola") or string.find(loweredName, "medkit")) then
+                    createOutlineESP(obj, Color3.fromRGB(0, 215, 255), Color3.fromRGB(0, 75, 100))
+                    
+                -- 2. ESP Generators V2 (generator) -> Pure Red
+                elseif getgenv().ESP_Generators_V2 and string.find(loweredName, "generator") then
+                    createOutlineESP(obj, Color3.fromRGB(255, 0, 0), Color3.fromRGB(120, 0, 0))
+                    
+                -- 3. ESP Jane Doe Documents (document) -> Dark Red
+                elseif getgenv().ESP_Documents and string.find(loweredName, "document") then
+                    createOutlineESP(obj, Color3.fromRGB(115, 0, 0), Color3.fromRGB(50, 0, 0))
+                else
+                    -- Garbage Collection Optimization: strip highlighting from objects when toggles switch off
+                    if not getgenv().ESP_Items and (string.find(loweredName, "bloxycola") or string.find(loweredName, "medkit")) then
+                        removeESP(obj)
+                    end
+                    if not getgenv().ESP_Generators_V2 and string.find(loweredName, "generator") then
+                        removeESP(obj)
+                    end
+                    if not getgenv().ESP_Documents and string.find(loweredName, "document") then
+                        removeESP(obj)
+                    end
+                end
+            end
+        end
+        task.wait(1.5) -- Faster response mapping matrix ticking rate
     end
 end)
 
--- Environment Loop Handler
+----------------------------------------------------------------------------------
+-- ENVIRONMENTAL ENGINE MODIFIERS
+----------------------------------------------------------------------------------
 task.spawn(function()
     while true do
         task.wait(1)
@@ -502,11 +509,11 @@ AimTab:Toggle({
 })
 
 ----------------------------------------------------------------------------------
--- ESP TAB
+-- ESP TAB (UPDATED VISUAL MATRIX CONFIG)
 ----------------------------------------------------------------------------------
 local ESPTab = Window:Tab({ Title = "ESP", Icon = "eye" })
 
-ESPTab:Section({ Title = "Visuals & Wallhacks" })
+ESPTab:Section({ Title = "Player Entities Tracking" })
 
 ESPTab:Toggle({
     Title = "ESP Killers",
@@ -520,10 +527,27 @@ ESPTab:Toggle({
     Callback = function(state) getgenv().ESP_Survivors = state end
 })
 
+ESPTab:Section({ Title = "Objective & Item Tracking" })
+
 ESPTab:Toggle({
-    Title = "ESP Generators",
+    Title = "ESP Items",
+    Desc = "Highlights BloxyCola and Medkits in Light Blue across the map",
     Value = false,
-    Callback = function(state) getgenv().ESP_Generators = state end
+    Callback = function(state) getgenv().ESP_Items = state end
+})
+
+ESPTab:Toggle({
+    Title = "ESP Generators V2",
+    Desc = "Highlights Generators with an intensive Red Outline engine",
+    Value = false,
+    Callback = function(state) getgenv().ESP_Generators_V2 = state end
+})
+
+ESPTab:Toggle({
+    Title = "ESP Jane Doe Documents",
+    Desc = "Highlights hidden Documents across the map in Dark Red",
+    Value = false,
+    Callback = function(state) getgenv().ESP_Documents = state end
 })
 
 ----------------------------------------------------------------------------------
@@ -578,7 +602,7 @@ ConfigTab:Keybind({
 -- Finish Setup Notification
 WindUI:Notify({
     Title = "Jane Doe Hub",
-    Content = "Initialization Complete! Anti-Bait wall filters are fully primed.",
+    Content = "ESP Modules initialized. Items, Gen V2, and Documents ready.",
     Duration = 4,
     Icon = "check"
 })
