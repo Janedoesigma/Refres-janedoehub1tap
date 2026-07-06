@@ -2,11 +2,12 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
--- Variáveis de Estado (Configurações)
+-- Variaveis de Estado (Configurações)
 local GodMode = false
 local KillAll = false
 local AimbotEnabled = false
@@ -18,18 +19,19 @@ local NoclipEnabled = false
 local SpeedHackEnabled = false
 local PlayerSpeed = 16
 
-local PosicaoOriginal = nil
+local PosiçãoOriginal = nil
 
--- Atalho para os Remotes (.pesde/sleitnick_net)
+-- Atalho para os Remotes Atualizados (.pesde/sleitnick_net)
 local NetPath = ReplicatedStorage:WaitForChild("Packages"):WaitForChild(".pesde"):WaitForChild("sleitnick_net@0.1.0"):WaitForChild("net")
 local REDamage = NetPath:WaitForChild("RE/Damage")
 local RFDamage = NetPath:WaitForChild("RF/Damage")
 local RECheckProtected = NetPath:WaitForChild("RE/CheckProtected")
 
 ----------------------------------------------------------------
--- FUNÇÕES AUXILIARES DE TRAPAÇA
+-- FUNÇÕES AUXILIARES DE TRAPAÇA (COMBATE E MOVIMENTAÇÃO)
 ----------------------------------------------------------------
 
+-- Função para simular o ataque completo estruturado nas suas descobertas
 local function darDanoNoInimigo(target, dano)
     if RFDamage and RECheckProtected and target:FindFirstChild("Humanoid") then
         task.spawn(function()
@@ -39,6 +41,7 @@ local function darDanoNoInimigo(target, dano)
     end
 end
 
+-- Pega o inimigo (não-player) válido mais próximo
 local function obterInimigoMaisProximo(raioMaximo)
     local maisProximo = nil
     local menorDistancia = raioMaximo
@@ -64,53 +67,51 @@ local function obterInimigoMaisProximo(raioMaximo)
 end
 
 ----------------------------------------------------------------
--- CARREGANDO A WINDUI E CRIAÇÃO DA JANELA
+-- CARREGANDO A INTERFACE FLUENT OFICIAL
 ----------------------------------------------------------------
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
-local Window = WindUI:CreateWindow({
-    Title = "JANE DOE HUB",
-    Icon = "pizza", 
-    Author = "by jane doe sigma",
-    Folder = "JaneDoeHubPizza",
+local Window = Fluent:CreateWindow({
+    Title = "JANE DOE HUB (PIZZA GAME BETA)",
+    SubTitle = "by jane doe sigma",
+    TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
-    Transparent = true,
+    Acrylic = true,
     Theme = "Dark",
-    Resizable = true,
-    HideSearchBar = true,
-    ScrollBarEnabled = true
+    MinimizeKey = Enum.KeyCode.LeftControl
 })
 
--- Criando as Abas
-local MainTab = Window:Tab({ Title = "Main", Icon = "home" })
-local SettingsTab = Window:Tab({ Title = "Settings", Icon = "settings" })
+local Tabs = {
+    Main = Window:AddTab({ Title = "Main", Icon = "home" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+}
+
+Window:SelectTab(Tabs.Main)
 
 ----------------------------------------------------------------
--- ELEMENTOS DA ABA: MAIN
+-- SEÇÃO: TAB MAIN (COMBATE / ESP / FARM)
 ----------------------------------------------------------------
 
-MainTab:Paragraph({
+Tabs.Main:AddParagraph({
     Title = "Combate & Proteção",
-    Desc = "Ajustes de imortalidade e eliminação em massa."
+    Content = "Configurações de automação de dano e imortalidade."
 })
 
-MainTab:Toggle({
+Tabs.Main:AddToggle("GodModeToggle", {
     Title = "God Mode",
-    Desc = "Fica imortal contra danos do jogo",
-    Icon = "shield",
-    Value = false,
-    Callback = function(state)
-        GodMode = state
+    Default = false,
+    Callback = function(Value)
+        GodMode = Value
     end
 })
 
-MainTab:Toggle({
+Tabs.Main:AddToggle("KillAllToggle", {
     Title = "Kill All",
-    Desc = "Elimina instantaneamente todas as criaturas",
-    Icon = "swords",
-    Value = false,
-    Callback = function(state)
-        KillAll = state
+    Default = false,
+    Callback = function(Value)
+        KillAll = Value
         if KillAll then
             task.spawn(function()
                 while KillAll do
@@ -127,171 +128,134 @@ MainTab:Toggle({
     end
 })
 
-MainTab:Paragraph({
+Tabs.Main:AddParagraph({
     Title = "Aimbot Legítimo",
-    Desc = "Trava sua câmera e corpo nas criaturas automatizadas."
+    Content = "Alvo focado automaticamente em criaturas próximas."
 })
 
-MainTab:Toggle({
+Tabs.Main:AddToggle("AimbotToggle", {
     Title = "Aimbot Inimigos",
-    Desc = "Foca apenas em inimigos próximos",
-    Icon = "crosshair",
-    Value = false,
-    Callback = function(state)
-        AimbotEnabled = state
+    Default = false,
+    Callback = function(Value)
+        AimbotEnabled = Value
     end
 })
 
-MainTab:Slider({
+Tabs.Main:AddSlider("AimbotSlider", {
     Title = "Raio do Aimbot (Range)",
-    Desc = "Ajusta o limite de distância para travar",
-    Step = 1,
-    Value = { Min = 50, Max = 500, Default = 100 },
-    Callback = function(value)
-        AimbotRange = value
+    Description = "Distância máxima para travar o foco",
+    Default = 100,
+    Min = 50,
+    Max = 500,
+    Rounding = 0,
+    Callback = function(Value)
+        AimbotRange = Value
     end
 })
 
-MainTab:Paragraph({
-    Title = "Visualizadores e Farm",
-    Desc = "Rastreamento e coleta automática."
+Tabs.Main:AddParagraph({
+    Title = "Visualizadores (ESP)",
+    Content = "Rastreamento de entidades pelo mapa."
 })
 
-MainTab:Toggle({
+Tabs.Main:AddToggle("EspInimigosToggle", {
     Title = "ESP Inimigos",
-    Desc = "Exibe contorno amarelo e distância sobre criaturas",
-    Icon = "eye",
-    Value = false,
-    Callback = function(state)
-        EspInimigos = state
+    Default = false,
+    Callback = function(Value)
+        EspInimigos = Value
     end
 })
 
-MainTab:Toggle({
+Tabs.Main:AddToggle("EspSoulsToggle", {
     Title = "ESP Souls",
-    Desc = "Exibe contorno ciano nos itens Soul",
-    Icon = "sparkles",
-    Value = false,
-    Callback = function(state)
-        EspSouls = state
+    Default = false,
+    Callback = function(Value)
+        EspSouls = Value
     end
 })
 
-MainTab:Toggle({
+Tabs.Main:AddParagraph({
+    Title = "Automação",
+    Content = "Recolha recursos sem esforço."
+})
+
+Tabs.Main:AddToggle("SoulTeleportToggle", {
     Title = "Teleporte Soul",
-    Desc = "Auto farm de Souls (retorna ao ponto de origem ao limpar)",
-    Icon = "zap",
-    Value = false,
-    Callback = function(state)
-        SoulTeleport = state
-        if not SoulTeleport and PosicaoOriginal then
+    Default = false,
+    Callback = function(Value)
+        SoulTeleport = Value
+        if not SoulTeleport and PosiçãoOriginal then
+            -- Devolve o player ao local de origem se desligar voluntariamente
             local char = LocalPlayer.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
-                char.HumanoidRootPart.CFrame = PosicaoOriginal
+                char.HumanoidRootPart.CFrame = PosiçãoOriginal
             end
-            PosicaoOriginal = nil
+            PosiçãoOriginal = nil
         end
     end
 })
 
 ----------------------------------------------------------------
--- ELEMENTOS DA ABA: SETTINGS (Configuração da UI inclusa)
+-- SEÇÃO: TAB SETTINGS (MIGRAÇÃO DA INTERFACE ORIGINAL FLUENT)
 ----------------------------------------------------------------
 
-SettingsTab:Paragraph({
+Tabs.Settings:AddParagraph({
     Title = "Modificações do Personagem",
-    Desc = "Altere físicas do seu personagem"
+    Content = "Ajustes físicos do seu boneco."
 })
 
-SettingsTab:Toggle({
+Tabs.Settings:AddToggle("NoclipToggle", {
     Title = "Noclip",
-    Desc = "Permite atravessar paredes sem cair pelo chão",
-    Icon = "ghost",
-    Value = false,
-    Callback = function(state)
-        NoclipEnabled = state
+    Default = false,
+    Callback = function(Value)
+        NoclipEnabled = Value
     end
 })
 
-SettingsTab:Toggle({
+Tabs.Settings:AddToggle("SpeedToggle", {
     Title = "Speed Hack",
-    Desc = "Ativa a modificação de velocidade contínua",
-    Icon = "gauge",
-    Value = false,
-    Callback = function(state)
-        SpeedHackEnabled = state
+    Default = false,
+    Callback = function(Value)
+        SpeedHackEnabled = Value
         if not SpeedHackEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
             LocalPlayer.Character.Humanoid.WalkSpeed = 16
         end
     end
 })
 
-SettingsTab:Slider({
+Tabs.Settings:AddSlider("SpeedSlider", {
     Title = "Velocidade do Player",
-    Desc = "Velocidade de movimento customizada",
-    Step = 1,
-    Value = { Min = 16, Max = 100, Default = 16 },
-    Callback = function(value)
-        PlayerSpeed = value
+    Default = 16,
+    Min = 16,
+    Max = 100,
+    Rounding = 0,
+    Callback = function(Value)
+        PlayerSpeed = Value
     end
 })
 
-SettingsTab:Paragraph({
-    Title = "Aparência da Interface",
-    Desc = "Customização do WindUI"
-})
-
-SettingsTab:Dropdown({
-    Title = "Theme",
-    Desc = "Mude o tema de cores",
-    Values = (function()
-        local names = {}
-        for name in pairs(WindUI:GetThemes()) do
-            table.insert(names, name)
-        end
-        table.sort(names)
-        return names
-    end)(),
-    Value = { "Dark" },
-    Multi = false,
-    Callback = function(selected)
-        WindUI:SetTheme(selected)
-    end
-})
-
-SettingsTab:Toggle({
-    Title = "Transparent",
-    Desc = "Ativa o visual acrílico translúcido",
-    Icon = "blend",
-    Value = true,
-    Callback = function(state)
-        Window:ToggleTransparency(state)
-    end
-})
-
-SettingsTab:Keybind({
-    Title = "Toggle UI Key",
-    Desc = "Escolha o botão para esconder ou abrir o menu",
-    Value = "RightShift",
-    Callback = function(v)
-        Window:SetToggleKey(Enum.KeyCode[v])
-    end
-})
+-- Adicionando gerenciadores automáticos de paleta de cores e temas nativos do Fluent
+InterfaceManager:SetLibrary(Fluent)
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:BuildConfigSection(Tabs.Settings)
 
 ----------------------------------------------------------------
--- LOOPS INTERNOS (RUNSERVICE / ASYNC TICKERS)
+-- LOOPS INTERNOS PRINCIPAIS (TICKERS EM SEGUNDO PLANO)
 ----------------------------------------------------------------
 
+-- Loop de Renderização Contínua (Aimbot, Noclip, Speed)
 RunService.RenderStepped:Connect(function()
     local Char = LocalPlayer.Character
     if not Char then return end
 
-    -- Speed Hack
+    -- 1. Mecânica de Speed Hack
     if SpeedHackEnabled and Char:FindFirstChild("Humanoid") then
         Char.Humanoid.WalkSpeed = PlayerSpeed
     end
 
-    -- Noclip
+    -- 2. Mecânica de Noclip (Ignora paredes, mantém chão)
     if NoclipEnabled then
         for _, parte in ipairs(Char:GetChildren()) do
             if parte:IsA("BasePart") and parte.Name ~= "HumanoidRootPart" then
@@ -300,45 +264,49 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Aimbot Dinâmico
+    -- 3. Mecânica do Aimbot Dinâmico
     if AimbotEnabled then
         local alvo = obterInimigoMaisProximo(AimbotRange)
         if alvo and alvo:FindFirstChild("HumanoidRootPart") then
+            -- Trava a Câmera
             Camera.CFrame = CFrame.new(Camera.CFrame.Position, alvo.HumanoidRootPart.Position)
+            -- Força o Boneco a olhar diretamente para o alvo horizontalmente
             local lookPos = Vector3.new(alvo.HumanoidRootPart.Position.X, Char.HumanoidRootPart.Position.Y, alvo.HumanoidRootPart.Position.Z)
             Char.HumanoidRootPart.CFrame = CFrame.new(Char.HumanoidRootPart.Position, lookPos)
         end
     end
 end)
 
+-- Loop Secundário (ESP / Curas / Teleportes)
 task.spawn(function()
     while true do
         local Char = LocalPlayer.Character
         if Char and Char:FindFirstChild("Humanoid") then
             
-            -- God Mode Duplo (Usa seus novos remotes)
+            -- Executa God Mode baseado nos seus novos logs de dano recebido
             if GodMode and REDamage and RECheckProtected then
                 REDamage:FireServer(Char, -1)
                 RECheckProtected:FireServer(0)
             end
 
-            -- Teleporte Soul inteligente
+            -- Gerenciador do Teleporte Soul
             if SoulTeleport and Char:FindFirstChild("HumanoidRootPart") then
                 local alvoSoul = Workspace:FindFirstChild("Soul", true) or Workspace:FindFirstChild("soul", true)
                 if alvoSoul and alvoSoul:IsA("BasePart") then
-                    if not PosicaoOriginal then
-                        PosicaoOriginal = Char.HumanoidRootPart.CFrame
+                    if not PosiçãoOriginal then
+                        PosiçãoOriginal = Char.HumanoidRootPart.CFrame
                     end
                     Char.HumanoidRootPart.CFrame = alvoSoul.CFrame
-                elseif PosicaoOriginal then
-                    Char.HumanoidRootPart.CFrame = PosicaoOriginal
-                    PosicaoOriginal = nil
+                elseif PosiçãoOriginal then
+                    -- Se sumirem as Souls, volta para onde você estava
+                    Char.HumanoidRootPart.CFrame = PosiçãoOriginal
+                    PosiçãoOriginal = nil
                 end
             end
 
-            -- Manipulação de ESP em tempo real
+            -- Atualização dinâmica do ESP (Inimigos e Souls)
             for _, item in ipairs(Workspace:GetChildren()) do
-                -- Inimigos
+                -- ESP Inimigos
                 if item:IsA("Model") and item:FindFirstChild("Humanoid") and item:GetAttribute("State") and not Players:GetPlayerFromCharacter(item) then
                     local highlight = item:FindFirstChild("JaneDoeESP")
                     if EspInimigos and item.Humanoid.Health > 0 then
@@ -346,7 +314,7 @@ task.spawn(function()
                             highlight = Instance.new("Highlight")
                             highlight.Name = "JaneDoeESP"
                             highlight.FillTransparency = 0.6
-                            highlight.FillColor = Color3.fromRGB(255, 255, 0)
+                            highlight.FillColor = Color3.fromRGB(255, 255, 0) -- Amarelo
                             highlight.OutlineColor = Color3.fromRGB(255, 255, 0)
                             highlight.Parent = item
                         end
@@ -355,7 +323,7 @@ task.spawn(function()
                     end
                 end
                 
-                -- Souls
+                -- ESP Souls
                 if item.Name == "Soul" or item.Name == "soul" then
                     local highlight = item:FindFirstChild("JaneDoeSoulESP")
                     if EspSouls then
@@ -363,7 +331,7 @@ task.spawn(function()
                             highlight = Instance.new("Highlight")
                             highlight.Name = "JaneDoeSoulESP"
                             highlight.FillTransparency = 0.3
-                            highlight.FillColor = Color3.fromRGB(0, 255, 255)
+                            highlight.FillColor = Color3.fromRGB(0, 255, 255) -- Ciano para diferenciar das criaturas
                             highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
                             highlight.Parent = item
                         end
@@ -377,6 +345,7 @@ task.spawn(function()
     end
 end)
 
+-- Identificação para novos monstros adicionados em tempo real (Foco imediato do Kill All se ativo)
 Workspace.ChildAdded:Connect(function(child)
     if KillAll and child:IsA("Model") and child:GetAttribute("State") and child:WaitForChild("Humanoid", 2) then
         task.wait(0.1)
@@ -386,10 +355,9 @@ Workspace.ChildAdded:Connect(function(child)
     end
 end)
 
--- Notificação Inicial da WindUI
-WindUI:Notify({
+-- Inicialização Concluída
+Fluent:Notify({
     Title = "JANE DOE HUB",
-    Content = "Carregado com sucesso na WindUI!",
-    Duration = 4,
-    Icon = "pizza"
+    Content = "Iniciado com sucesso! Pressione CTRL Esquerdo para ocultar.",
+    Duration = 5
 })
