@@ -1,74 +1,13 @@
+-- ==================== SERVIÇOS ====================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
-local TweenService = game:GetService("TweenService")
-
-local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 local Camera = Workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
 
--- Variaveis de Estado (Configurações)
-local GodMode = false
-local KillAll = false
-local AimbotEnabled = false
-local AimbotRange = 100
-local EspInimigos = false
-local EspSouls = false
-local SoulTeleport = false
-local NoclipEnabled = false
-local SpeedHackEnabled = false
-local PlayerSpeed = 16
-
-local PosiçãoOriginal = nil
-
--- Atalho para os Remotes Atualizados (.pesde/sleitnick_net)
-local NetPath = ReplicatedStorage:WaitForChild("Packages"):WaitForChild(".pesde"):WaitForChild("sleitnick_net@0.1.0"):WaitForChild("net")
-local REDamage = NetPath:WaitForChild("RE/Damage")
-local RFDamage = NetPath:WaitForChild("RF/Damage")
-local RECheckProtected = NetPath:WaitForChild("RE/CheckProtected")
-
-----------------------------------------------------------------
--- FUNÇÕES AUXILIARES DE TRAPAÇA (COMBATE E MOVIMENTAÇÃO)
-----------------------------------------------------------------
-
--- Função para simular o ataque completo estruturado nas suas descobertas
-local function darDanoNoInimigo(target, dano)
-    if RFDamage and RECheckProtected and target:FindFirstChild("Humanoid") then
-        task.spawn(function()
-            RFDamage:InvokeServer(target, dano)
-            RECheckProtected:FireServer(0, false)
-        end)
-    end
-end
-
--- Pega o inimigo (não-player) válido mais próximo
-local function obterInimigoMaisProximo(raioMaximo)
-    local maisProximo = nil
-    local menorDistancia = raioMaximo
-
-    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then 
-        return nil 
-    end
-    
-    local meuPos = LocalPlayer.Character.HumanoidRootPart.Position
-
-    for _, v in ipairs(Workspace:GetChildren()) do
-        if v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(v) then
-            if v.Humanoid.Health > 0 and v:GetAttribute("State") then
-                local distancia = (v.HumanoidRootPart.Position - meuPos).Magnitude
-                if distancia < menorDistancia then
-                    menorDistancia = distancia
-                    maisProximo = v
-                end
-            end
-        end
-    end
-    return maisProximo
-end
-
-----------------------------------------------------------------
--- CARREGANDO A INTERFACE FLUENT OFICIAL
-----------------------------------------------------------------
+-- ==================== INTERFACE FLUENT ====================
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
@@ -88,276 +27,214 @@ local Tabs = {
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 
-Window:SelectTab(Tabs.Main)
+local Options = Fluent.Options
 
-----------------------------------------------------------------
--- SEÇÃO: TAB MAIN (COMBATE / ESP / FARM)
-----------------------------------------------------------------
+-- ==================== FUNÇÃO SEGURA PARA OBTER REMOTES ====================
+local function getRemotes()
+    local ok, REDamage, RFDamage, RECheckProtected
+    ok = pcall(function()
+        local NetPath = ReplicatedStorage:WaitForChild("Packages"):WaitForChild(".pesde"):WaitForChild("sleitnick_net@0.1.0"):WaitForChild("net")
+        REDamage = NetPath:WaitForChild("RE/Damage")
+        RFDamage = NetPath:WaitForChild("RF/Damage")
+        RECheckProtected = NetPath:WaitForChild("RE/CheckProtected")
+    end)
+    if not ok then return nil, nil, nil end
+    return REDamage, RFDamage, RECheckProtected
+end
 
-Tabs.Main:AddParagraph({
-    Title = "Combate & Proteção",
-    Content = "Configurações de automação de dano e imortalidade."
-})
+-- ==================== ABA MAIN ====================
+Tabs.Main:AddParagraph({ Title = "Combat & Protection", Content = "Immortality and quick escapes." })
 
+-- GOD MODE
 Tabs.Main:AddToggle("GodModeToggle", {
     Title = "God Mode",
     Default = false,
     Callback = function(Value)
-        GodMode = Value
-    end
-})
-
-Tabs.Main:AddToggle("KillAllToggle", {
-    Title = "Kill All",
-    Default = false,
-    Callback = function(Value)
-        KillAll = Value
-        if KillAll then
-            task.spawn(function()
-                while KillAll do
-                    for _, v in ipairs(Workspace:GetChildren()) do
-                        if not KillAll then break end
-                        if v:IsA("Model") and v:GetAttribute("State") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and not Players:GetPlayerFromCharacter(v) then
-                            darDanoNoInimigo(v, v.Humanoid.Health)
-                        end
+        if Value then
+            local REDamage, _, RECheckProtected = getRemotes()
+            if not REDamage then return end
+            _G.GodLoop = task.spawn(function()
+                while Options.GodModeToggle.Value do
+                    local char = LocalPlayer.Character
+                    if char and char:FindFirstChild("Humanoid") then
+                        pcall(function() REDamage:FireServer(char, -1) RECheckProtected:FireServer(0) end)
                     end
-                    task.wait(0.3)
+                    task.wait(0.033)
                 end
             end)
-        end
-    end
-})
-
-Tabs.Main:AddParagraph({
-    Title = "Aimbot Legítimo",
-    Content = "Alvo focado automaticamente em criaturas próximas."
-})
-
-Tabs.Main:AddToggle("AimbotToggle", {
-    Title = "Aimbot Inimigos",
-    Default = false,
-    Callback = function(Value)
-        AimbotEnabled = Value
-    end
-})
-
-Tabs.Main:AddSlider("AimbotSlider", {
-    Title = "Raio do Aimbot (Range)",
-    Description = "Distância máxima para travar o foco",
-    Default = 100,
-    Min = 50,
-    Max = 500,
-    Rounding = 0,
-    Callback = function(Value)
-        AimbotRange = Value
-    end
-})
-
-Tabs.Main:AddParagraph({
-    Title = "Visualizadores (ESP)",
-    Content = "Rastreamento de entidades pelo mapa."
-})
-
-Tabs.Main:AddToggle("EspInimigosToggle", {
-    Title = "ESP Inimigos",
-    Default = false,
-    Callback = function(Value)
-        EspInimigos = Value
-    end
-})
-
-Tabs.Main:AddToggle("EspSoulsToggle", {
-    Title = "ESP Souls",
-    Default = false,
-    Callback = function(Value)
-        EspSouls = Value
-    end
-})
-
-Tabs.Main:AddParagraph({
-    Title = "Automação",
-    Content = "Recolha recursos sem esforço."
-})
-
-Tabs.Main:AddToggle("SoulTeleportToggle", {
-    Title = "Teleporte Soul",
-    Default = false,
-    Callback = function(Value)
-        SoulTeleport = Value
-        if not SoulTeleport and PosiçãoOriginal then
-            -- Devolve o player ao local de origem se desligar voluntariamente
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                char.HumanoidRootPart.CFrame = PosiçãoOriginal
+            local function curar(character)
+                if character and character:FindFirstChild("Humanoid") then
+                    pcall(function() REDamage:FireServer(character, -1) RECheckProtected:FireServer(0) end)
+                end
             end
-            PosiçãoOriginal = nil
+            _G.GodCharAdded = LocalPlayer.CharacterAdded:Connect(function(char)
+                local humanoid = char:WaitForChild("Humanoid", 10)
+                if humanoid then
+                    _G.GodHealthConn = humanoid.HealthChanged:Connect(function() curar(char) end)
+                    curar(char)
+                end
+            end)
+            if LocalPlayer.Character then
+                local char = LocalPlayer.Character
+                local humanoid = char:FindFirstChild("Humanoid")
+                if humanoid then
+                    _G.GodHealthConn = humanoid.HealthChanged:Connect(function() curar(char) end)
+                    curar(char)
+                end
+            end
+        else
+            if _G.GodLoop then task.cancel(_G.GodLoop) end
+            if _G.GodCharAdded then _G.GodCharAdded:Disconnect() end
+            if _G.GodHealthConn then _G.GodHealthConn:Disconnect() end
+            _G.GodLoop, _G.GodCharAdded, _G.GodHealthConn = nil, nil, nil
         end
     end
 })
 
-----------------------------------------------------------------
--- SEÇÃO: TAB SETTINGS (MIGRAÇÃO DA INTERFACE ORIGINAL FLUENT)
-----------------------------------------------------------------
+-- TELEPORT EXIT (FUNCIONANDO)
+Tabs.Main:AddButton({
+    Title = "Teleport Exit (in boss it doesn't work)",
+    Description = "Teleports exactly onto the Exit part.",
+    Callback = function()
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then
+            Fluent:Notify({ Title = "Error", Content = "No character to teleport.", Duration = 2 })
+            return
+        end
 
-Tabs.Settings:AddParagraph({
-    Title = "Modificações do Personagem",
-    Content = "Ajustes físicos do seu boneco."
+        local targetPart = nil
+
+        -- 1. Tenta o caminho exato fornecido
+        local map = Workspace:FindFirstChild("Map")
+        if map then
+            local exitFolder = map:FindFirstChild("Exit")
+            if exitFolder then
+                local roomModel = exitFolder:FindFirstChild("RoomModel")
+                if roomModel then
+                    targetPart = roomModel:FindFirstChild("Exit")  -- pode ser parte ou modelo
+                end
+            end
+        end
+
+        -- 2. Se encontrou um modelo, pega o PrimaryPart; se for parte, usa direto
+        if targetPart then
+            if targetPart:IsA("Model") and targetPart.PrimaryPart then
+                targetPart = targetPart.PrimaryPart
+            elseif not targetPart:IsA("BasePart") then
+                targetPart = nil
+            end
+        end
+
+        -- 3. Fallback: busca genérica por qualquer BasePart chamada "Exit"
+        if not targetPart then
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj.Name == "Exit" and obj:IsA("BasePart") then
+                    targetPart = obj
+                    break
+                elseif obj.Name == "Exit" and obj:IsA("Model") and obj.PrimaryPart then
+                    targetPart = obj.PrimaryPart
+                    break
+                end
+            end
+        end
+
+        if targetPart and targetPart:IsA("BasePart") then
+            -- Posiciona EXATAMENTE em cima, elevado 5 studs
+            char.HumanoidRootPart.CFrame = CFrame.new(targetPart.Position) + Vector3.new(0, 5, 0)
+            Fluent:Notify({ Title = "Teleported", Content = "You are now on the Exit.", Duration = 2 })
+        else
+            Fluent:Notify({ Title = "Not Found", Content = "The Exit part was not located.", Duration = 3 })
+        end
+    end
 })
 
+-- ==================== ABA SETTINGS ====================
+Tabs.Settings:AddParagraph({ Title = "Character Modifications", Content = "Movement and physics tweaks." })
+
+-- NOCLIP (atravessa tudo)
 Tabs.Settings:AddToggle("NoclipToggle", {
     Title = "Noclip",
     Default = false,
     Callback = function(Value)
-        NoclipEnabled = Value
+        if Value then
+            _G.NoclipConnection = RunService.RenderStepped:Connect(function()
+                local char = LocalPlayer.Character
+                if not char then return end
+                for _, parte in ipairs(char:GetDescendants()) do
+                    if parte:IsA("BasePart") then
+                        parte.CanCollide = false
+                    end
+                end
+            end)
+        else
+            if _G.NoclipConnection then _G.NoclipConnection:Disconnect() end
+            _G.NoclipConnection = nil
+            if LocalPlayer.Character then
+                for _, parte in ipairs(LocalPlayer.Character:GetDescendants()) do
+                    if parte:IsA("BasePart") then
+                        parte.CanCollide = true
+                    end
+                end
+            end
+        end
     end
+})
+
+-- SPEED HACK
+Tabs.Settings:AddSlider("SpeedSlider", {
+    Title = "Walk Speed",
+    Description = "Base speed 16",
+    Default = 16, Min = 16, Max = 100, Rounding = 0,
+    Callback = function() end
 })
 
 Tabs.Settings:AddToggle("SpeedToggle", {
     Title = "Speed Hack",
     Default = false,
     Callback = function(Value)
-        SpeedHackEnabled = Value
-        if not SpeedHackEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            LocalPlayer.Character.Humanoid.WalkSpeed = 16
+        if Value then
+            _G.SpeedConnection = RunService.RenderStepped:Connect(function()
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("Humanoid") then
+                    char.Humanoid.WalkSpeed = Options.SpeedSlider.Value
+                end
+            end)
+        else
+            if _G.SpeedConnection then _G.SpeedConnection:Disconnect() end
+            _G.SpeedConnection = nil
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                LocalPlayer.Character.Humanoid.WalkSpeed = 16
+            end
         end
     end
 })
 
-Tabs.Settings:AddSlider("SpeedSlider", {
-    Title = "Velocidade do Player",
-    Default = 16,
-    Min = 16,
-    Max = 100,
-    Rounding = 0,
-    Callback = function(Value)
-        PlayerSpeed = Value
+-- INFINITE YIELD
+Tabs.Settings:AddButton({
+    Title = "Execute Infinite Yield",
+    Description = "Loads the Infinite Yield admin script.",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+        Fluent:Notify({ Title = "Success", Content = "Infinite Yield loaded!", Duration = 3 })
     end
 })
 
--- Adicionando gerenciadores automáticos de paleta de cores e temas nativos do Fluent
-InterfaceManager:SetLibrary(Fluent)
-InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+-- ==================== ADDONS ====================
 SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
 SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+InterfaceManager:SetFolder("FluentScriptHub")
+SaveManager:SetFolder("FluentScriptHub/specific-game")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 
-----------------------------------------------------------------
--- LOOPS INTERNOS PRINCIPAIS (TICKERS EM SEGUNDO PLANO)
-----------------------------------------------------------------
+Window:SelectTab(1)
 
--- Loop de Renderização Contínua (Aimbot, Noclip, Speed)
-RunService.RenderStepped:Connect(function()
-    local Char = LocalPlayer.Character
-    if not Char then return end
-
-    -- 1. Mecânica de Speed Hack
-    if SpeedHackEnabled and Char:FindFirstChild("Humanoid") then
-        Char.Humanoid.WalkSpeed = PlayerSpeed
-    end
-
-    -- 2. Mecânica de Noclip (Ignora paredes, mantém chão)
-    if NoclipEnabled then
-        for _, parte in ipairs(Char:GetChildren()) do
-            if parte:IsA("BasePart") and parte.Name ~= "HumanoidRootPart" then
-                parte.CanCollide = false
-            end
-        end
-    end
-
-    -- 3. Mecânica do Aimbot Dinâmico
-    if AimbotEnabled then
-        local alvo = obterInimigoMaisProximo(AimbotRange)
-        if alvo and alvo:FindFirstChild("HumanoidRootPart") then
-            -- Trava a Câmera
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, alvo.HumanoidRootPart.Position)
-            -- Força o Boneco a olhar diretamente para o alvo horizontalmente
-            local lookPos = Vector3.new(alvo.HumanoidRootPart.Position.X, Char.HumanoidRootPart.Position.Y, alvo.HumanoidRootPart.Position.Z)
-            Char.HumanoidRootPart.CFrame = CFrame.new(Char.HumanoidRootPart.Position, lookPos)
-        end
-    end
-end)
-
--- Loop Secundário (ESP / Curas / Teleportes)
-task.spawn(function()
-    while true do
-        local Char = LocalPlayer.Character
-        if Char and Char:FindFirstChild("Humanoid") then
-            
-            -- Executa God Mode baseado nos seus novos logs de dano recebido
-            if GodMode and REDamage and RECheckProtected then
-                REDamage:FireServer(Char, -1)
-                RECheckProtected:FireServer(0)
-            end
-
-            -- Gerenciador do Teleporte Soul
-            if SoulTeleport and Char:FindFirstChild("HumanoidRootPart") then
-                local alvoSoul = Workspace:FindFirstChild("Soul", true) or Workspace:FindFirstChild("soul", true)
-                if alvoSoul and alvoSoul:IsA("BasePart") then
-                    if not PosiçãoOriginal then
-                        PosiçãoOriginal = Char.HumanoidRootPart.CFrame
-                    end
-                    Char.HumanoidRootPart.CFrame = alvoSoul.CFrame
-                elseif PosiçãoOriginal then
-                    -- Se sumirem as Souls, volta para onde você estava
-                    Char.HumanoidRootPart.CFrame = PosiçãoOriginal
-                    PosiçãoOriginal = nil
-                end
-            end
-
-            -- Atualização dinâmica do ESP (Inimigos e Souls)
-            for _, item in ipairs(Workspace:GetChildren()) do
-                -- ESP Inimigos
-                if item:IsA("Model") and item:FindFirstChild("Humanoid") and item:GetAttribute("State") and not Players:GetPlayerFromCharacter(item) then
-                    local highlight = item:FindFirstChild("JaneDoeESP")
-                    if EspInimigos and item.Humanoid.Health > 0 then
-                        if not highlight then
-                            highlight = Instance.new("Highlight")
-                            highlight.Name = "JaneDoeESP"
-                            highlight.FillTransparency = 0.6
-                            highlight.FillColor = Color3.fromRGB(255, 255, 0) -- Amarelo
-                            highlight.OutlineColor = Color3.fromRGB(255, 255, 0)
-                            highlight.Parent = item
-                        end
-                    else
-                        if highlight then highlight:Destroy() end
-                    end
-                end
-                
-                -- ESP Souls
-                if item.Name == "Soul" or item.Name == "soul" then
-                    local highlight = item:FindFirstChild("JaneDoeSoulESP")
-                    if EspSouls then
-                        if not highlight and item:IsA("BasePart") then
-                            highlight = Instance.new("Highlight")
-                            highlight.Name = "JaneDoeSoulESP"
-                            highlight.FillTransparency = 0.3
-                            highlight.FillColor = Color3.fromRGB(0, 255, 255) -- Ciano para diferenciar das criaturas
-                            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                            highlight.Parent = item
-                        end
-                    else
-                        if highlight then highlight:Destroy() end
-                    end
-                end
-            end
-        end
-        task.wait(0.2)
-    end
-end)
-
--- Identificação para novos monstros adicionados em tempo real (Foco imediato do Kill All se ativo)
-Workspace.ChildAdded:Connect(function(child)
-    if KillAll and child:IsA("Model") and child:GetAttribute("State") and child:WaitForChild("Humanoid", 2) then
-        task.wait(0.1)
-        if child.Humanoid.Health > 0 then
-            darDanoNoInimigo(child, child.Humanoid.Health)
-        end
-    end
-end)
-
--- Inicialização Concluída
 Fluent:Notify({
     Title = "JANE DOE HUB",
-    Content = "Iniciado com sucesso! Pressione CTRL Esquerdo para ocultar.",
+    Content = "Ready works",
     Duration = 5
 })
+
+SaveManager:LoadAutoloadConfig()
