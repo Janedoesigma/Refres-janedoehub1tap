@@ -9,14 +9,14 @@ local LocalPlayer = Players.LocalPlayer
 
 -- ==================== INTERFACE FLUENT ====================
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-local Fluent, SaveManager, InterfaceManager = loadstring(Game:HttpGet("https://raw.githubusercontent.com/discoart/FluentPlus/refs/heads/main/Beta.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
 local Window = Fluent:CreateWindow({
     Title = "JANE DOE HUB (PIZZA GAME BETA)",
     SubTitle = "by jane doe sigma",
-    TabWidth = 138,
-    Size = UDim2.fromOffset(460, 450),
+    TabWidth = 160,
+    Size = UDim2.fromOffset(460, 460),
     Acrylic = true,
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.LeftControl
@@ -94,7 +94,7 @@ Tabs.Main:AddToggle("GodModeToggle", {
 -- TELEPORT EXIT (FUNCIONANDO)
 Tabs.Main:AddButton({
     Title = "Teleport Exit (in boss it doesn't work)",
-    Description = "Teleports exactly onto the Exit part use noclip recomended.",
+    Description = "Teleports exactly onto the Exit part use noclip.",
     Callback = function()
         local char = LocalPlayer.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then
@@ -233,7 +233,7 @@ Window:SelectTab(1)
 
 Fluent:Notify({
     Title = "JANE DOE HUB",
-    Content = "Ready works",
+    Content = "Ready. Teleport Exit works, Noclip passes through walls.",
     Duration = 5
 })
 
