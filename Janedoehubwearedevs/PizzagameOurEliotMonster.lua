@@ -49,7 +49,7 @@ local function getRemotes()
 end
 
 -- ==================== ABA PRINCIPAL ====================
-local MainTab = Window:Tab({ Title = "Main", Icon = "home" })
+local MainTab = Window:Tab({ Title = "Main", Icon = "ghost" })
 
 MainTab:Section({ Title = "Combat & Protection" })
 
@@ -108,7 +108,7 @@ MainTab:Button({
     Callback = function()
         local char = LocalPlayer.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then
-            WindUI:Notify({ Title = "Error", Content = "No character to teleport.", Duration = 2, Icon = "alert-triangle" })
+            WindUI:Notify({ Title = "Error", Content = "No character to teleport.", Duration = 4, Icon = "alert-triangle" })
             return
         end
 
@@ -229,7 +229,7 @@ SettingsTab:Toggle({
 -- INFINITE YIELD
 SettingsTab:Button({
     Title = "Execute Infinite Yield",
-    Desc = "Loads the Infinite Yield admin script",
+    Desc = "Loads the Infinite Yield admin script idk",
     Callback = function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
         WindUI:Notify({ Title = "Success", Content = "Infinite Yield loaded!", Duration = 3, Icon = "check-circle" })
@@ -248,9 +248,9 @@ SettingsTab:Keybind({
 -- ==================== NOTIFICAÇÃO FINAL ====================
 WindUI:Notify({
     Title = "JANE DOE HUB",
-    Content = "Script carregado! Use os toggles na Main e Settings.",
-    Duration = 5,
-    Icon = "zap"
+    Content = "God luck for farm Souls",
+    Duration = 6,
+    Icon = "ghost"
 })
 
 -- Tecla padrão para abrir/fechar a UI
