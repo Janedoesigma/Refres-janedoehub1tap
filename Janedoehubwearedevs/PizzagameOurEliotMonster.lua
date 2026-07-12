@@ -16,7 +16,7 @@ local Window = Fluent:CreateWindow({
     Title = "JANE DOE HUB (PIZZA GAME BETA)",
     SubTitle = "by jane doe sigma",
     TabWidth = 160,
-    Size = UDim2.fromOffset(580, 460),
+    Size = UDim2.fromOffset(460, 430),
     Acrylic = true,
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.LeftControl
@@ -94,7 +94,7 @@ Tabs.Main:AddToggle("GodModeToggle", {
 -- TELEPORT EXIT (FUNCIONANDO)
 Tabs.Main:AddButton({
     Title = "Teleport Exit (in boss it doesn't work)",
-    Description = "Teleports exactly onto the Exit part.",
+    Description = "Teleports exactly onto the Exit part use noclip recomended.",
     Callback = function()
         local char = LocalPlayer.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then
