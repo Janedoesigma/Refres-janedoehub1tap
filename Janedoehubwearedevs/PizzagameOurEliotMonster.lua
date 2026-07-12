@@ -3,7 +3,7 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 
 local Window = WindUI:CreateWindow({
     Title = "JANE DOE HUB (PIZZA GAME BETA)",
-    Icon = "skull",
+    Icon = "pizza",
     Author = "by jane doe sigma",
     Folder = "JaneDoeHub",
     Size = UDim2.fromOffset(460, 460),
