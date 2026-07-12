@@ -6,9 +6,9 @@ local Window = WindUI:CreateWindow({
     Icon = "pizza",
     Author = "by jane doe sigma",
     Folder = "JaneDoeHub",
-    Size = UDim2.fromOffset(460, 460),
-    MinSize = Vector2.new(460, 460),
-    MaxSize = Vector2.new(460, 460),
+    Size = UDim2.fromOffset(470, 470),
+    MinSize = Vector2.new(470, 470),
+    MaxSize = Vector2.new(470, 470),
     Transparent = true,
     Theme = "Dark",
     Resizable = true,
@@ -69,7 +69,7 @@ MainTab:Toggle({
                     if char and char:FindFirstChild("Humanoid") then
                         pcall(function() REDamage:FireServer(char, -1) RECheckProtected:FireServer(0) end)
                     end
-                    task.wait(0.033)
+                    task.wait(0.029)
                 end
             end)
             local function curar(character)
