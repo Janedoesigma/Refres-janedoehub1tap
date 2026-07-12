@@ -1,3 +1,31 @@
+-- ==================== WINDUI INTERFACE ====================
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "JANE DOE HUB (PIZZA GAME BETA)",
+    Icon = "skull",
+    Author = "by jane doe sigma",
+    Folder = "JaneDoeHub",
+    Size = UDim2.fromOffset(460, 460),
+    MinSize = Vector2.new(460, 460),
+    MaxSize = Vector2.new(460, 460),
+    Transparent = true,
+    Theme = "Dark",
+    Resizable = true,
+    SideBarWidth = 200,
+    BackgroundImageTransparency = 0.39,
+    HideSearchBar = true,
+    ScrollBarEnabled = false,
+    Background = "rbxassetid://",  -- mesmo background do seu exemplo
+    User = {
+        Enabled = true,
+        Anonymous = false,
+    },
+})
+
+WindUI:GetTransparency(false)
+WindUI:GetWindowSize(52)
+
 -- ==================== SERVIÇOS ====================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -6,28 +34,6 @@ local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local Camera = Workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
-
--- ==================== INTERFACE FLUENT ====================
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
-local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
-
-local Window = Fluent:CreateWindow({
-    Title = "JANE DOE HUB (PIZZA GAME BETA)",
-    SubTitle = "by jane doe sigma",
-    TabWidth = 148,
-    Size = UDim2.fromOffset(460, 460),
-    Acrylic = true,
-    Theme = "Dark",
-    MinimizeKey = Enum.KeyCode.LeftControl
-})
-
-local Tabs = {
-    Main = Window:AddTab({ Title = "Main", Icon = "home" }),
-    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
-}
-
-local Options = Fluent.Options
 
 -- ==================== FUNÇÃO SEGURA PARA OBTER REMOTES ====================
 local function getRemotes()
@@ -42,19 +48,23 @@ local function getRemotes()
     return REDamage, RFDamage, RECheckProtected
 end
 
--- ==================== ABA MAIN ====================
-Tabs.Main:AddParagraph({ Title = "Combat & Protection", Content = "Immortality and quick escapes." })
+-- ==================== ABA PRINCIPAL ====================
+local MainTab = Window:Tab({ Title = "Main", Icon = "home" })
+
+MainTab:Section({ Title = "Combat & Protection" })
 
 -- GOD MODE
-Tabs.Main:AddToggle("GodModeToggle", {
+MainTab:Toggle({
     Title = "God Mode",
-    Default = false,
-    Callback = function(Value)
-        if Value then
+    Desc = "Regenerates health extremely fast",
+    Value = false,
+    Callback = function(state)
+        if state then
             local REDamage, _, RECheckProtected = getRemotes()
             if not REDamage then return end
             _G.GodLoop = task.spawn(function()
-                while Options.GodModeToggle.Value do
+                while true do
+                    if not state then break end
                     local char = LocalPlayer.Character
                     if char and char:FindFirstChild("Humanoid") then
                         pcall(function() REDamage:FireServer(char, -1) RECheckProtected:FireServer(0) end)
@@ -91,32 +101,32 @@ Tabs.Main:AddToggle("GodModeToggle", {
     end
 })
 
--- TELEPORT EXIT (FUNCIONANDO)
-Tabs.Main:AddButton({
+-- TELEPORT EXIT (CAMINHO EXATO + FALLBACK)
+MainTab:Button({
     Title = "Teleport Exit (in boss it doesn't work)",
-    Description = "Teleports exactly onto the Exit part use noclip.",
+    Desc = "Teleports directly onto the nearest Exit part use noclip.",
     Callback = function()
         local char = LocalPlayer.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then
-            Fluent:Notify({ Title = "Error", Content = "No character to teleport.", Duration = 2 })
+            WindUI:Notify({ Title = "Error", Content = "No character to teleport.", Duration = 2, Icon = "alert-triangle" })
             return
         end
 
         local targetPart = nil
 
-        -- 1. Tenta o caminho exato fornecido
+        -- Tenta o caminho exato
         local map = Workspace:FindFirstChild("Map")
         if map then
             local exitFolder = map:FindFirstChild("Exit")
             if exitFolder then
                 local roomModel = exitFolder:FindFirstChild("RoomModel")
                 if roomModel then
-                    targetPart = roomModel:FindFirstChild("Exit")  -- pode ser parte ou modelo
+                    targetPart = roomModel:FindFirstChild("Exit")
                 end
             end
         end
 
-        -- 2. Se encontrou um modelo, pega o PrimaryPart; se for parte, usa direto
+        -- Se encontrou um modelo, usa PrimaryPart; se for parte, usa direto
         if targetPart then
             if targetPart:IsA("Model") and targetPart.PrimaryPart then
                 targetPart = targetPart.PrimaryPart
@@ -125,7 +135,7 @@ Tabs.Main:AddButton({
             end
         end
 
-        -- 3. Fallback: busca genérica por qualquer BasePart chamada "Exit"
+        -- Fallback: busca genérica
         if not targetPart then
             for _, obj in ipairs(Workspace:GetDescendants()) do
                 if obj.Name == "Exit" and obj:IsA("BasePart") then
@@ -139,24 +149,26 @@ Tabs.Main:AddButton({
         end
 
         if targetPart and targetPart:IsA("BasePart") then
-            -- Posiciona EXATAMENTE em cima, elevado 5 studs
             char.HumanoidRootPart.CFrame = CFrame.new(targetPart.Position) + Vector3.new(0, 5, 0)
-            Fluent:Notify({ Title = "Teleported", Content = "You are now on the Exit.", Duration = 2 })
+            WindUI:Notify({ Title = "Teleported", Content = "You are now on the Exit.", Duration = 2, Icon = "check-circle" })
         else
-            Fluent:Notify({ Title = "Not Found", Content = "The Exit part was not located.", Duration = 3 })
+            WindUI:Notify({ Title = "Not Found", Content = "The Exit part was not located.", Duration = 3, Icon = "x-circle" })
         end
     end
 })
 
 -- ==================== ABA SETTINGS ====================
-Tabs.Settings:AddParagraph({ Title = "Character Modifications", Content = "Movement and physics tweaks." })
+local SettingsTab = Window:Tab({ Title = "Settings", Icon = "settings" })
+
+SettingsTab:Section({ Title = "Character Modifications" })
 
 -- NOCLIP (atravessa tudo)
-Tabs.Settings:AddToggle("NoclipToggle", {
+SettingsTab:Toggle({
     Title = "Noclip",
-    Default = false,
-    Callback = function(Value)
-        if Value then
+    Desc = "Pass through all walls",
+    Value = false,
+    Callback = function(state)
+        if state then
             _G.NoclipConnection = RunService.RenderStepped:Connect(function()
                 local char = LocalPlayer.Character
                 if not char then return end
@@ -181,22 +193,27 @@ Tabs.Settings:AddToggle("NoclipToggle", {
 })
 
 -- SPEED HACK
-Tabs.Settings:AddSlider("SpeedSlider", {
+local speedValue = 16
+SettingsTab:Slider({
     Title = "Walk Speed",
-    Description = "Base speed 16",
-    Default = 16, Min = 16, Max = 100, Rounding = 0,
-    Callback = function() end
+    Desc = "Base speed 16",
+    Step = 1,
+    Value = { Min = 16, Max = 100, Default = 16 },
+    Callback = function(value)
+        speedValue = value
+    end
 })
 
-Tabs.Settings:AddToggle("SpeedToggle", {
+SettingsTab:Toggle({
     Title = "Speed Hack",
-    Default = false,
-    Callback = function(Value)
-        if Value then
+    Desc = "Apply custom walk speed",
+    Value = false,
+    Callback = function(state)
+        if state then
             _G.SpeedConnection = RunService.RenderStepped:Connect(function()
                 local char = LocalPlayer.Character
                 if char and char:FindFirstChild("Humanoid") then
-                    char.Humanoid.WalkSpeed = Options.SpeedSlider.Value
+                    char.Humanoid.WalkSpeed = speedValue
                 end
             end)
         else
@@ -210,31 +227,31 @@ Tabs.Settings:AddToggle("SpeedToggle", {
 })
 
 -- INFINITE YIELD
-Tabs.Settings:AddButton({
+SettingsTab:Button({
     Title = "Execute Infinite Yield",
-    Description = "Loads the Infinite Yield admin script.",
+    Desc = "Loads the Infinite Yield admin script",
     Callback = function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
-        Fluent:Notify({ Title = "Success", Content = "Infinite Yield loaded!", Duration = 3 })
+        WindUI:Notify({ Title = "Success", Content = "Infinite Yield loaded!", Duration = 3, Icon = "check-circle" })
     end
 })
 
--- ==================== ADDONS ====================
-SaveManager:SetLibrary(Fluent)
-InterfaceManager:SetLibrary(Fluent)
-SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({})
-InterfaceManager:SetFolder("FluentScriptHub")
-SaveManager:SetFolder("FluentScriptHub/specific-game")
-InterfaceManager:BuildInterfaceSection(Tabs.Settings)
-SaveManager:BuildConfigSection(Tabs.Settings)
-
-Window:SelectTab(1)
-
-Fluent:Notify({
-    Title = "JANE DOE HUB",
-    Content = "Ready. Teleport Exit works, Noclip passes through walls.",
-    Duration = 5
+-- TECLA PARA ALTERNAR A UI (opcional)
+SettingsTab:Keybind({
+    Title = "Toggle UI Key",
+    Value = "RightShift",
+    Callback = function(v)
+        Window:SetToggleKey(Enum.KeyCode[v])
+    end
 })
 
-SaveManager:LoadAutoloadConfig()
+-- ==================== NOTIFICAÇÃO FINAL ====================
+WindUI:Notify({
+    Title = "JANE DOE HUB",
+    Content = "Script carregado! Use os toggles na Main e Settings.",
+    Duration = 5,
+    Icon = "zap"
+})
+
+-- Tecla padrão para abrir/fechar a UI
+Window:SetToggleKey(Enum.KeyCode.RightShift)
