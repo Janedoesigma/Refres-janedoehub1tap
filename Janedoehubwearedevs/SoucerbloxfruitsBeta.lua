@@ -2263,9 +2263,9 @@ function vu102.DisableOption(_)
 end
 function vu102.LoadLibrary(pu603)
     local lf_171 = vu81:MakeWindow({
-        "JANE DOE HUB: (BLOX FRUITS)",
-        "by jane doe sigma",
-        "redz-library-V5"
+        "redz Hub : Blox Fruits",
+        "by real_redz",
+        "redzHub-BloxFruits.json"
     })
     pu603:Translator(lf_171)
     local lf_172 = pu603:InstallPlugin(lf_171)
@@ -2281,23 +2281,23 @@ function vu102.LoadLibrary(pu603)
     lf_171:SelectTab(lf_173.MainFarm)
     lf_171:AddMinimizeButton({
         Button = {
-            Image = "rbxassetid://90396225447367",
+            Image = "rbxassetid://15298567397",
             BackgroundTransparency = 0
         Corner = {
             CornerRadius = UDim.new(0, 6)
     })
     local lf_178 = lf_173.Discord
     lf_178:AddDiscordInvite({
-        Name = "clike para doce gratis",
-        Description = "67777777777777777777777777777777777 beta",
-        Logo = "rbxassetid://78349521765984",
-        Invite = "idk"
+        Name = "redz Hub | Community",
+        Description = "Join our discord community to receive information about the next update",
+        Logo = "rbxassetid://17382040552",
+        Invite = "https://discord.gg/7aR7kNVt4g"
     })
     lf_178:AddSection("")
     lf_178:AddParagraph({
         "Mentions:
- Honorable Mention: LORENZO GAY SIGMA
- Honorable Mention 2: Jonh Rod idk"
+ Honorable Mention: acsu123
+ Honorable Mention 2: XFister"
     })
     local lf_179 = lf_173.MainFarm
         Bigger = 380,
@@ -3145,8 +3145,8 @@ function vu102.LoadLibrary(pu603)
     local vu746 = lf_176
     local gt_isrmklilhbaa = lf_175.Enemies.Elites
     local vu747 = vu82.Enemies.IsSpawned
-    local vu749 = "     "
-    local vu750 = "     "
+    local vu749 = "�����"
+    local vu750 = "�����"
     local vu752 = 0
     local function v758(p753, p754)
         if p754 or p754 == nil then
