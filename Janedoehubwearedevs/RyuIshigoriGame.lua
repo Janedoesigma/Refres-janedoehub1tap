@@ -3,7 +3,7 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 
 local Window = WindUI:CreateWindow({
     Title = "Ryu Ishigori Hub",
-    Icon = "skull",
+    Icon = "sparkles",
     Author = "Ryu Ishigori Hub",
     Folder = "RyuIshigoriHub",
     Size = UDim2.fromOffset(580, 460),
@@ -40,7 +40,6 @@ WindUI:GetWindowSize(52)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 local LocalPlayer = Players.LocalPlayer
 
 -- ==================== EVENT REFERENCES ====================
@@ -56,7 +55,7 @@ local antiAFKEnabled = false
 local larpEnabled = false
 local pointsEnabled = false
 
--- ==================== LARP LOOP ====================
+-- ==================== LARP LOOP (with teleport) ====================
 local function startLarpLoop()
     if larpLoop then return end
     larpLoop = task.spawn(function()
@@ -64,12 +63,18 @@ local function startLarpLoop()
             if not larpEnabled then break end
             if not antiAFKEnabled or not isAntiAFKActive then
                 pcall(function()
+                    -- Teleport to position
+                    local char = LocalPlayer.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        char.HumanoidRootPart.CFrame = CFrame.new(-72, 79, -100)
+                    end
+                    -- Fire LarpRE
                     if LarpRE then
                         LarpRE:FireServer(CFrame.new(-17.264760971069, 4.0060005187988, -9.2418718338013, -0.48236966133118, 0, 0.87596774101257, 0, 1, 0, -0.87596774101257, 0, -0.48236966133118))
                     end
                 end)
             end
-            task.wait(0.2)
+            task.wait(0.3)
         end
     end)
 end
@@ -106,7 +111,7 @@ local function stopPointsLoop()
     end
 end
 
--- ==================== ANTI AFK ====================
+-- ==================== ANTI AFK (reset character every 9 minutes) ====================
 local function startAntiAFK()
     if antiAFKTask then return end
     antiAFKTask = task.spawn(function()
@@ -116,20 +121,21 @@ local function startAntiAFK()
                 if not antiAFKEnabled then return end
                 task.wait(1)
             end
-            -- Activate pause
+            -- Activate pause to prevent loops during reset
             isAntiAFKActive = true
-            -- Simulate jump for 13.3 seconds
-            local startTime = tick()
-            while tick() - startTime < 13.3 do
-                if not antiAFKEnabled then
-                    isAntiAFKActive = false
-                    return
+            
+            -- Reset character (kill and respawn)
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char then
+                    char:BreakJoints() -- kills character, forcing respawn
                 end
-                -- Send jump key down and up quickly
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
-                task.wait(0.1)
-            end
+            end)
+            
+            -- Wait a moment to simulate activity (optional)
+            task.wait(2)
+            
+            -- Deactivate pause
             isAntiAFKActive = false
         end
     end)
@@ -166,14 +172,14 @@ local function teleportToSmallServer()
 end
 
 -- ==================== UI ====================
-local LARPTab = Window:Tab({ Title = "LARP", Icon = "home" })
+local LARPTab = Window:Tab({ Title = "LARP", Icon = "sparkles" })
 
 -- Section: Auto LARP
 LARPTab:Section({ Title = "Auto LARP" })
 
 LARPTab:Toggle({
     Title = "Auto LARP",
-    Desc = "LEST LARP",
+    Desc = "Teleports to position and fires LarpRE every 0.3s",
     Value = false,
     Callback = function(state)
         larpEnabled = state
@@ -187,7 +193,7 @@ LARPTab:Toggle({
 
 LARPTab:Toggle({
     Title = "Auto LARP Points",
-    Desc = "Add points",
+    Desc = "Fires ShopRE every 0.1 seconds",
     Value = false,
     Callback = function(state)
         pointsEnabled = state
@@ -204,7 +210,7 @@ LARPTab:Section({ Title = "Anti AFK" })
 
 LARPTab:Toggle({
     Title = "Anti AFK",
-    Desc = "Pauses auto loops every 9 min and simulates jump for 13.3 sec",
+    Desc = "Resets character every 9 minutes to prevent AFK kick",
     Value = false,
     Callback = function(state)
         antiAFKEnabled = state
