@@ -3,7 +3,7 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 
 local Window = WindUI:CreateWindow({
     Title = "Ryu Ishigori Hub",
-    Icon = "sparkles",
+    Icon = "skull",
     Author = "Ryu Ishigori Hub",
     Folder = "RyuIshigoriHub",
     Size = UDim2.fromOffset(580, 460),
@@ -19,7 +19,7 @@ local Window = WindUI:CreateWindow({
     Background = "rbxassetid://98111119882509",
     User = {
         Enabled = true,
-        Anonymous = true,
+        Anonymous = false,
     },
     KeySystem = {
         Key = { "1234", "5678" },
@@ -45,17 +45,28 @@ local LocalPlayer = Players.LocalPlayer
 -- ==================== EVENT REFERENCES ====================
 local LarpRE = ReplicatedStorage:FindFirstChild("LarpRE")
 local ShopRE = ReplicatedStorage:FindFirstChild("ShopRE")
+local RebirthRE = ReplicatedStorage:FindFirstChild("RebirthRE")
+local ShakeRE = ReplicatedStorage:FindFirstChild("ShakeRE")
 
 -- ==================== GLOBALS ====================
 local larpLoop = nil
 local pointsLoop = nil
+local rebirthLoop = nil
 local antiAFKTask = nil
+local cameraShakeBlock = nil
 local isAntiAFKActive = false
 local antiAFKEnabled = false
 local larpEnabled = false
 local pointsEnabled = false
+local rebirthEnabled = false
+local antiCameraEnabled = false
 
--- ==================== LARP LOOP (with teleport) ====================
+-- Anti-Lag variables
+local antiLagConnections = {}
+local antiLagActive = false
+local antiLagPlayerConnections = {} -- for each player's character added
+
+-- ==================== LARP LOOP (0.1s) ====================
 local function startLarpLoop()
     if larpLoop then return end
     larpLoop = task.spawn(function()
@@ -63,18 +74,16 @@ local function startLarpLoop()
             if not larpEnabled then break end
             if not antiAFKEnabled or not isAntiAFKActive then
                 pcall(function()
-                    -- Teleport to position
                     local char = LocalPlayer.Character
                     if char and char:FindFirstChild("HumanoidRootPart") then
                         char.HumanoidRootPart.CFrame = CFrame.new(-72, 79, -100)
                     end
-                    -- Fire LarpRE
                     if LarpRE then
                         LarpRE:FireServer(CFrame.new(-17.264760971069, 4.0060005187988, -9.2418718338013, -0.48236966133118, 0, 0.87596774101257, 0, 1, 0, -0.87596774101257, 0, -0.48236966133118))
                     end
                 end)
             end
-            task.wait(0.3)
+            task.wait(0.1)
         end
     end)
 end
@@ -111,31 +120,48 @@ local function stopPointsLoop()
     end
 end
 
+-- ==================== REBIRTH LOOP (0.1s) ====================
+local function startRebirthLoop()
+    if rebirthLoop then return end
+    rebirthLoop = task.spawn(function()
+        while true do
+            if not rebirthEnabled then break end
+            if not antiAFKEnabled or not isAntiAFKActive then
+                pcall(function()
+                    if RebirthRE then
+                        RebirthRE:FireServer("REBIRTH")
+                    end
+                end)
+            end
+            task.wait(0.1)
+        end
+    end)
+end
+
+local function stopRebirthLoop()
+    if rebirthLoop then
+        task.cancel(rebirthLoop)
+        rebirthLoop = nil
+    end
+end
+
 -- ==================== ANTI AFK (reset character every 9 minutes) ====================
 local function startAntiAFK()
     if antiAFKTask then return end
     antiAFKTask = task.spawn(function()
         while antiAFKEnabled do
-            -- Wait 9 minutes (540 seconds)
             for i = 1, 540 do
                 if not antiAFKEnabled then return end
                 task.wait(1)
             end
-            -- Activate pause to prevent loops during reset
             isAntiAFKActive = true
-            
-            -- Reset character (kill and respawn)
             pcall(function()
                 local char = LocalPlayer.Character
                 if char then
-                    char:BreakJoints() -- kills character, forcing respawn
+                    char:BreakJoints()
                 end
             end)
-            
-            -- Wait a moment to simulate activity (optional)
             task.wait(2)
-            
-            -- Deactivate pause
             isAntiAFKActive = false
         end
     end)
@@ -149,11 +175,119 @@ local function stopAntiAFK()
     isAntiAFKActive = false
 end
 
+-- ==================== CAMERA SHAKE BLOCK ====================
+local function toggleCameraShake(state)
+    antiCameraEnabled = state
+    if state then
+        if ShakeRE then
+            cameraShakeBlock = ShakeRE.OnClientEvent:Connect(function()
+                pcall(function()
+                    local cam = workspace.CurrentCamera
+                    if cam then
+                        task.spawn(function()
+                            local originalCF = cam.CFrame
+                            task.wait(0.01)
+                            cam.CFrame = originalCF
+                        end)
+                    end
+                end)
+            end)
+        end
+    else
+        if cameraShakeBlock then
+            cameraShakeBlock:Disconnect()
+            cameraShakeBlock = nil
+        end
+    end
+end
+
+-- ==================== ANTI LAG (Map & Players) ====================
+local function applyAntiLag(state)
+    antiLagActive = state
+
+    -- Helper: hide all BaseParts in an instance
+    local function hideAllParts(instance)
+        for _, child in ipairs(instance:GetDescendants()) do
+            if child:IsA("BasePart") then
+                child.Transparency = 1
+            end
+        end
+    end
+
+    -- Helper: restore all BaseParts in an instance
+    local function restoreAllParts(instance)
+        for _, child in ipairs(instance:GetDescendants()) do
+            if child:IsA("BasePart") then
+                child.Transparency = 0
+            end
+        end
+    end
+
+    if state then
+        -- Hide existing parts in workspace
+        hideAllParts(workspace)
+
+        -- Hide existing players' characters
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player.Character then
+                hideAllParts(player.Character)
+            end
+            -- Connect to CharacterAdded for future characters
+            local conn = player.CharacterAdded:Connect(function(char)
+                hideAllParts(char)
+            end)
+            table.insert(antiLagPlayerConnections, conn)
+        end
+
+        -- Watch for new parts added to workspace
+        local connWorkspace = workspace.DescendantAdded:Connect(function(desc)
+            if desc:IsA("BasePart") then
+                desc.Transparency = 1
+            end
+        end)
+        table.insert(antiLagConnections, connWorkspace)
+
+        -- Watch for new players
+        local connPlayer = Players.PlayerAdded:Connect(function(player)
+            -- Hide character when it appears
+            local charConn = player.CharacterAdded:Connect(function(char)
+                hideAllParts(char)
+            end)
+            table.insert(antiLagPlayerConnections, charConn)
+            -- If already has character, hide it
+            if player.Character then
+                hideAllParts(player.Character)
+            end
+        end)
+        table.insert(antiLagConnections, connPlayer)
+
+    else
+        -- Restore visibility
+        restoreAllParts(workspace)
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player.Character then
+                restoreAllParts(player.Character)
+            end
+        end
+
+        -- Disconnect workspace connections
+        for _, conn in ipairs(antiLagConnections) do
+            conn:Disconnect()
+        end
+        antiLagConnections = {}
+
+        -- Disconnect player CharacterAdded connections
+        for _, conn in ipairs(antiLagPlayerConnections) do
+            conn:Disconnect()
+        end
+        antiLagPlayerConnections = {}
+    end
+end
+
 -- ==================== TELEPORT TO SMALL SERVER ====================
 local function teleportToSmallServer()
     local playerCount = #Players:GetPlayers()
     if playerCount > 10 then
-        -- Teleport to a new server (random)
         TeleportService:Teleport(game.PlaceId)
         WindUI:Notify({
             Title = "Teleporting",
@@ -172,14 +306,13 @@ local function teleportToSmallServer()
 end
 
 -- ==================== UI ====================
-local LARPTab = Window:Tab({ Title = "LARP", Icon = "sparkles" })
+local LARPTab = Window:Tab({ Title = "LARP", Icon = "home" })
 
--- Section: Auto LARP
 LARPTab:Section({ Title = "Auto LARP" })
 
 LARPTab:Toggle({
     Title = "Auto LARP",
-    Desc = "Teleports to position and fires LarpRE every 0.3s",
+    Desc = "Lest Larp...",
     Value = false,
     Callback = function(state)
         larpEnabled = state
@@ -193,7 +326,7 @@ LARPTab:Toggle({
 
 LARPTab:Toggle({
     Title = "Auto LARP Points",
-    Desc = "Fires ShopRE every 0.1 seconds",
+    Desc = "add points",
     Value = false,
     Callback = function(state)
         pointsEnabled = state
@@ -205,12 +338,25 @@ LARPTab:Toggle({
     end
 })
 
--- Section: Anti AFK
+LARPTab:Toggle({
+    Title = "Auto REBIRTH",
+    Desc = "recommend",
+    Value = false,
+    Callback = function(state)
+        rebirthEnabled = state
+        if state then
+            startRebirthLoop()
+        else
+            stopRebirthLoop()
+        end
+    end
+})
+
 LARPTab:Section({ Title = "Anti AFK" })
 
 LARPTab:Toggle({
     Title = "Anti AFK",
-    Desc = "Resets character every 9 minutes to prevent AFK kick",
+    Desc = "Resets character every 9 minutes to prevent AFK kick (recommend)",
     Value = false,
     Callback = function(state)
         antiAFKEnabled = state
@@ -222,7 +368,6 @@ LARPTab:Toggle({
     end
 })
 
--- Section: Server
 LARPTab:Section({ Title = "Server" })
 
 LARPTab:Button({
@@ -233,7 +378,32 @@ LARPTab:Button({
     end
 })
 
--- Keybind to toggle UI
+-- Visual Tab
+local VisualTab = Window:Tab({ Title = "Visual", Icon = "eye" })
+
+VisualTab:Section({ Title = "Camera" })
+
+VisualTab:Toggle({
+    Title = "Anti movimento de câmera",
+    Desc = "Blocks camera shake from ShakeRE (experimental)",
+    Value = false,
+    Callback = function(state)
+        toggleCameraShake(state)
+    end
+})
+
+VisualTab:Section({ Title = "Performance" })
+
+VisualTab:Toggle({
+    Title = "Anti Lag Map/Player",
+    Desc = "Makes map and players invisible (not deleted) to reduce lag",
+    Value = false,
+    Callback = function(state)
+        applyAntiLag(state)
+    end
+})
+
+-- Keybind to toggle UI (on LARP tab)
 LARPTab:Keybind({
     Title = "Toggle UI Key",
     Desc = "Key to open/close the interface",
