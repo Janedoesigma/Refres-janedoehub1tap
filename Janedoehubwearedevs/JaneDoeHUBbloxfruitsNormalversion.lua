@@ -1315,8 +1315,8 @@ end
 
 local redzlib = loadstring(game:HttpGet("https://raw.githubusercontent.com/tlredz/Library/refs/heads/main/redz-V5-remake/main.luau"))()
 local Window = redzlib:MakeWindow({
-    Title = "JANE DOE HUB : Blox Fruit",
-    SubTitle = "by jane doe sigma",
+    Title = "ENDERMAN HUB: Blox Fruit",
+    SubTitle = "by fiat",
     SaveFolder = "oknaiget.json"
 })
 
@@ -1349,10 +1349,10 @@ local Tabs = {
 Tabs.Info:AddSection("Information")
 
 Tabs.Info:AddDiscordInvite({
-	Title = "JANE DOE | Community",
+	Title = "ENDERMAN | Community",
 	Description = "MORE SCRIPTS",
-	Banner = "rbxassetid://111501127199965", 
-	Logo = "rbxassetid://127116670132939",
+	Banner = "rbxassetid://8176158130", 
+	Logo = "rbxassetid://8176158130",
 	Invite = "https://scriptblox.com/u/FIAT91721",
 	Members = 0, 
 	Online = 0.1, 
