@@ -597,7 +597,7 @@ sea3 = (game.PlaceId == 7449423635 or game.PlaceId == 100117331123089)
 
 local Settings = {
     ["Tween Speed"] = 100,
-    ["Bypass Teleport"] = true,
+    ["Bypass Teleport"] = false,
     ["Up Y"] = false,
     ["Up Y When Low Health"] = false,
     ["Same Y"] = false
@@ -11586,6 +11586,19 @@ Callback = function(Value)
     Lighting.ColorShift_Top = Color3.new(0, 0, 0)
   end  
 end
+})
+
+-- Cole isso depois da linha 335 (onde Settings é definido)
+Tabs.Misc:Slider({
+    Name = "Tween Speed",
+    Min = 20,
+    Max = 150,
+    Increment = 5,
+    Default = 100, -- valor inicial (pode ser o mesmo que já está em Settings)
+    Callback = function(Value)
+        Settings["Tween Speed"] = Value   -- atualiza a tabela do script
+        _G.TweenSpeed = Value             -- variável global para outros módulos
+    end
 })
 
 
