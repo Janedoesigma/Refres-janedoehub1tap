@@ -1,1 +1,46 @@
-https://doitenroi.wispbyte.app/paste/uZ3E2H/raw
+getgenv().SettingConfig = {
+    NoBypassItems = {
+        "God's Chalice",
+        "Red Key",
+        "Apple",
+        "Banana",
+        "Pineapple",
+        "Flower 1",
+        "Flower 2",
+        "Flower 3",
+        "Sweet Chalice",
+        "Fist of Darkness",
+        "Holy Torch",
+        "Hidden Key",
+        "Library Key",
+        "Water Key",
+        "Fire Essence",
+        "Special Microchip",
+    },
+    Setting = {
+        UI = true,
+        UISize = 0.9,
+        Team = "Marines",
+        FPS = 0,
+        TweenSpeed = 150,
+        BringRange = 350,
+        BringCount = 5,
+        BypassTP = false,
+        BypassDist = 700,
+        MaxHops = 4,
+    },
+    SettingFarm = {
+        GOD = true,
+        Godhuman = true,
+        Saber = true,
+        CDK = true,
+        SkullGuitar = true,
+        RaceV3 = true,
+        SmartFarm = true,
+        SmartFruit = true,
+        AutoChestBeforeReset = true,
+        AutoDarkbeard = true,
+    },
+}
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Dev-BaconHub/hack/refs/heads/main/KaitunBF.lua"))()
